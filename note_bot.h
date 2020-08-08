@@ -20,6 +20,7 @@ namespace Telegram
             noOp
         };
         Note_bot(QString token, QNetworkProxy proxy, qlonglong interval, QObject* parent = nullptr);
+
         Note_bot(QString token, qlonglong interval, QObject* parent = nullptr);
         ~Note_bot();
     public slots:

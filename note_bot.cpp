@@ -49,7 +49,7 @@ Note_bot::Note_bot(QString token,  qlonglong interval, QObject *parent) :
 void Note_bot::handleUpdate(Update update)
 {
 
-    qDebug()<<" hear";
+  qDebug()<<" handleUpd; path:"<<QDir::current();;
     if(update.hasMessage() && update.getMessage().hasText())
     {
         QString messageText=update.getMessage().getText();
@@ -144,42 +144,76 @@ void Note_bot::decode(Update upd)
 
 }
 
-void Note_bot::newNote(Update temp)
-{
-    nextOp = noOp;
-    qDebug()<<"comand newNote";
-    qint64 chatId=temp.getMessage().getChat().getId();
-    QDir a;
-    qDebug()<<a.path();
-    a.mkdir("first");
-    if(!a.exists("data"))
-    {
-        a.setPath(a.path()+"/data");
 
-    }
-    qDebug()<<a.path();
-    a.mkdir("sec");
-    a.setPath(".");
-    a.mkdir("three");
-    //a.rmdir("gmg");
+void Note_bot::newNote(Update update) {
+  nextOp = noOp;
 
-    QString fileName = QString::number(chatId);
-    QFile res(fileName);
+  QDir userFolder;
+  userFolder.setPath("./data");
 
-    QString  text = temp.getMessage().getText();
-    res.open(QIODevice::WriteOnly | QIODevice::Text);
+  qDebug() << "comand: newNote";
 
-    QTextStream out(&res);
-        out << text << "\n";
-        res.close();
+  qint64 chatId = update.getMessage().getChat().getId();
+  if (!userFolder.exists(QString::number(chatId))) {
+    userFolder.mkdir(QString::number(chatId));
+  }
 
+  QString oldPath = QDir::currentPath();
+  QDir::setCurrent(userFolder.path() + "/" + QString::number(chatId));
+
+  QFile noteFile;
+  if (update.getMessage().getText().startsWith('/')) {
+
+    noteFile.setFileName(update.getMessage().getText().split(" ")[1]);
+  }
+  else {
+    noteFile.setFileName(update.getMessage().getText());
+  }
+
+  noteFile.open(QIODevice::WriteOnly | QIODevice::Text);
+  noteFile.close();
+  qDebug() << " NEW; path:" << QDir::current();
+  /*
+
+  QTextStream out(&res);
+  out << text << "\n";
+  res.close();
+  */
+  QDir::setCurrent(oldPath);
+  return;
 }
 
-void Note_bot::delNote(Update temp)
+void Note_bot::delNote(Update update)
 {
-    qDebug()<<"DEL_DEL_DEL";
-    nextOp = noOp;
+  QDir userFolder;
+  userFolder.setPath("./data");
+  QString delfilename;
+  if (update.getMessage().getText().startsWith('/')) {
+    delfilename = update.getMessage().getText().split(" ")[1];
+  }
+  else
+    delfilename = update.getMessage().getText();
 
+  QString oldPath = QDir::currentPath();
+  qint64 chatId = update.getMessage().getChat().getId();
+
+  // qDebug() << "Us path" << userFolder.path() << oldPath;
+
+  QDir::setCurrent(userFolder.path() + "/" + QString::number(chatId));
+
+  // qDebug() << "After set curr"  << QDir::currentPath();
+
+  // find in db first
+  if (QFile::exists(delfilename)) {
+    QFile::remove(delfilename);
+  }
+  else {
+    qDebug() << "File to del not exist!!!";
+  }
+
+  qDebug()<<"DEL_DEL_DEL";
+  nextOp = noOp;
+  QDir::setCurrent(oldPath);
 }
 
 void Note_bot::editNote(Update update, QString text)
@@ -219,9 +253,22 @@ void Note_bot::editNote(Update update, QString text)
 
 }
 
-void Note_bot::list(Update temp)
+void Note_bot::list(Update update)
 {
 
+  qint64 chatId = update.getMessage().getChat().getId();
+  QDir userFolder(QString("./data") + "/" + QString::number(chatId));
+
+
+
+  QStringList notelist = userFolder.entryList(QStringList(), QDir::Files);
+  QString reply;
+  foreach (QString filename, notelist) {
+    qDebug() << filename;
+    reply += filename+'\n';
+  }
+
+  sendMessage(chatId, reply);
 
 }
 
