@@ -222,16 +222,25 @@ void Note_bot::editNote(Update update, QString text)
     static QString noteName("");
     static QString noteText("");
 
-    switch (count){
-        case 0:
-        if(text!=""){
-            noteName = text;
-        }
-        else
-        {
-            noteName =  update.getMessage().getText();
-        }
-        sendMessage(update.getMessage().getChat().getId(),"Put new text:");
+    qint64 chatId = update.getMessage().getChat().getId();
+    switch (count) {
+    case 0: {
+      if (text != "") {
+        noteName = text;
+      }
+      else {
+        noteName = update.getMessage().getText();
+      }
+      QString oldPath = QDir::currentPath();
+      QDir::setCurrent(QString("./data") + "/" + QString::number(chatId));
+      QFile readfile(noteName); // change to @read by nub,er of note@
+      readfile.open(QIODevice::ReadOnly | QFile::Text);
+      QString reply;
+      reply = readfile.readAll();
+      sendMessage(chatId, "Old text =" + reply);
+      sendMessage(chatId, "Put new text:");
+      QDir::setCurrent(oldPath);
+      }
             break;
         case 1:
         noteText =  update.getMessage().getText();
@@ -245,10 +254,20 @@ void Note_bot::editNote(Update update, QString text)
     if(noteText.size() && noteName.size()){
 
          nextOp = noOp;
-         count  = 0;
-
+         count = 0;
+         QString oldPath = QDir::currentPath();
+         QDir::setCurrent(QString("./data") + "/" + QString::number(chatId));
+         QFile writefile;
+         writefile.setFileName(noteName);
+         writefile.open(QIODevice::WriteOnly | QFile::Text);
+         QByteArray a;
+         writefile.write(noteText.toLocal8Bit()); // convert
+         writefile.close();
+         sendMessage(chatId, "Saved!");
+         QDir::setCurrent(oldPath);
     }
     //db works
+
 
 
 }
