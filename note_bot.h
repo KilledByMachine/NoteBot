@@ -15,6 +15,7 @@ namespace Telegram
     public:
         enum NextOp {
             new_,
+            read_,
             del_,
             edit_,
             noOp
@@ -30,6 +31,7 @@ namespace Telegram
         void decode(Update upd);
         NextOp nextOp;
         void newNote   (Update);
+        void readNote   (Update);
         void delNote   (Update);
         void editNote  (Update, QString ="");
         void list      (Update);

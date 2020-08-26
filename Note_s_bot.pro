@@ -18,12 +18,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        note.cpp \
         note_bot.cpp
 
 
 HEADERS += \
-    note.h \
     note_bot.h
 
 

@@ -49,7 +49,7 @@ Note_bot::Note_bot(QString token,  qlonglong interval, QObject *parent) :
 void Note_bot::handleUpdate(Update update)
 {
 
-  qDebug()<<" handleUpd; path:"<<QDir::current();;
+  qDebug()<<" handleUpd; path:"<<QDir::current();
     if(update.hasMessage() && update.getMessage().hasText())
     {
         QString messageText=update.getMessage().getText();
@@ -60,6 +60,9 @@ void Note_bot::handleUpdate(Update update)
             case new_:
                 newNote(update);
                 break;
+            case read_:
+              readNote(update);
+              break;
             case del_:
                  delNote(update);
                  break;
@@ -104,6 +107,19 @@ void Note_bot::decode(Update upd)
 
         nextOp = new_;
         return;
+    }
+    if(upd.getMessage().getText().startsWith("/read")){
+      /*
+         * find note, in db(disk), if exist - send to user
+        */
+      if(upd.getMessage().getText().size() >5){
+        readNote(upd);
+        return;
+      }
+      sendMessage(chatId,"What you want to read?:");
+
+      nextOp = read_;
+      return;
     }
     if(upd.getMessage().getText().startsWith("/del")){
 
@@ -171,6 +187,7 @@ void Note_bot::newNote(Update update) {
   }
 
   noteFile.open(QIODevice::WriteOnly | QIODevice::Text);
+  sendMessage(chatId, "Created!" );
   noteFile.close();
   qDebug() << " NEW; path:" << QDir::current();
   /*
@@ -182,6 +199,45 @@ void Note_bot::newNote(Update update) {
   QDir::setCurrent(oldPath);
   return;
 }
+
+void Note_bot::readNote(Update update)
+{
+  nextOp = noOp;
+
+  QDir userFolder;
+  userFolder.setPath("./data");
+
+  qDebug() << "comand: readNote";
+
+  qint64 chatId = update.getMessage().getChat().getId();
+  if (!userFolder.exists(QString::number(chatId))) {
+    sendMessage(chatId, "No notes for this user" );
+
+    return;
+  }
+
+  QString oldPath = QDir::currentPath();
+  QDir::setCurrent(userFolder.path() + "/" + QString::number(chatId));
+
+  QFile readfile;
+  if (update.getMessage().getText().startsWith('/')) {
+
+    readfile.setFileName(update.getMessage().getText().split(" ")[1]);
+  }
+  else {
+    readfile.setFileName(update.getMessage().getText());
+  }
+
+  readfile.open(QIODevice::ReadOnly | QIODevice::Text);
+  QString reply;
+  reply = readfile.readAll();
+  readfile.close();
+  sendMessage(chatId, reply);
+  QDir::setCurrent(oldPath);
+  return;
+
+}
+
 
 void Note_bot::delNote(Update update)
 {
@@ -206,9 +262,11 @@ void Note_bot::delNote(Update update)
   // find in db first
   if (QFile::exists(delfilename)) {
     QFile::remove(delfilename);
+    sendMessage(chatId, "Deleted!" );
   }
   else {
     qDebug() << "File to del not exist!!!";
+    sendMessage(chatId, "Error: note doesn't exist !" );
   }
 
   qDebug()<<"DEL_DEL_DEL";
