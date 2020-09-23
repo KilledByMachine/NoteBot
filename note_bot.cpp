@@ -8,24 +8,11 @@ Note_bot::Note_bot(QString token,  qlonglong interval, QObject *parent) :
     TarnaBot(token,  interval, parent)
 {
     qDebug()<< connect(this, &Note_bot::updateReceived, this, &Note_bot::handleUpdate);
+    qDebug() << sizeof(Update);
     nextOp=noOp;
     db = QSqlDatabase::addDatabase("QSQLITE");
-        /*
-        QDir a;
-        qDebug()<<a.path();
-        a.mkdir("first");
-        if(!a.exists("data"))
-        {
-            a.setPath(a.path()+"/data");
 
-        }
-        qDebug()<<a.path();
-        a.mkdir("sec");
-        a.setPath(".");
-        a.mkdir("three");
-        //a.rmdir("gmg");
 
-    */
         db.setDatabaseName("E:/test");
 
         if (!db.open())
@@ -34,7 +21,7 @@ Note_bot::Note_bot(QString token,  qlonglong interval, QObject *parent) :
         }
         QSqlQuery query;
 
-        query.exec("select * from  table_name");
+        //query.exec("select * from  table_name"); !?!?!?
         while (query.next())
         {
                              int id = query.value(0).toInt();
@@ -77,7 +64,6 @@ void Note_bot::handleUpdate(Update update)
         if(update.getMessage().getText().startsWith('/'))
         {
             qDebug()<<"Starts with /";
-            //qDebug()<<update.getMessage().getText().size();
             decode(update);
 
         }
@@ -89,16 +75,7 @@ void Note_bot::handleUpdate(Update update)
 void Note_bot::decode(Update upd)
 {
     qint64 chatId=upd.getMessage().getChat().getId();
-    // можливо змінити параметри декоду, на кожну команду мб окремий метод, для створення зробити нормальну поведінку
-    // для нових записів, тобтостворення папки. папкипід юзера якщо нема, збереження
-    // в видаленні мб з видаленням всеї папки.. но не факт, з едітом.. видавати весь текст, і дозволяти його зміну/або
-    // повне видаленя і перезапис вмісту, мб зробити потом конфіги для юзерів. аля завжди заміняти/доп в текст
-
     if(upd.getMessage().getText().startsWith("/new")){
-        /*
-         * insert into db
-         * create file in folder @idUser@ named by biggest num in notes table
-        */
         if(upd.getMessage().getText().size() >4){
             newNote(upd);
             return;
@@ -109,21 +86,16 @@ void Note_bot::decode(Update upd)
         return;
     }
     if(upd.getMessage().getText().startsWith("/read")){
-      /*
-         * find note, in db(disk), if exist - send to user
-        */
       if(upd.getMessage().getText().size() >5){
         readNote(upd);
         return;
       }
       sendMessage(chatId,"What you want to read?:");
-
       nextOp = read_;
       return;
     }
     if(upd.getMessage().getText().startsWith("/del")){
 
-        //find note by noteName, if exist - del, else send "problem"
         if(upd.getMessage().getText().size() >4){
             delNote(upd);
             return;
@@ -134,8 +106,6 @@ void Note_bot::decode(Update upd)
 
     }
     if(upd.getMessage().getText().startsWith("/edit")){
-
-        //find note by noteName, send text from file, wait for new filling
         if(upd.getMessage().getText().size() >5){
             qDebug()<<upd.getMessage().getText();       //передати перший парам з повідомленням
             QString name = upd.getMessage().getText().split(" ")[1];
@@ -166,6 +136,7 @@ void Note_bot::newNote(Update update) {
 
   QDir userFolder;
   userFolder.setPath("./data");
+
 
   qDebug() << "comand: newNote";
 
@@ -238,7 +209,6 @@ void Note_bot::readNote(Update update)
 
 }
 
-
 void Note_bot::delNote(Update update)
 {
   QDir userFolder;
@@ -252,14 +222,7 @@ void Note_bot::delNote(Update update)
 
   QString oldPath = QDir::currentPath();
   qint64 chatId = update.getMessage().getChat().getId();
-
-  // qDebug() << "Us path" << userFolder.path() << oldPath;
-
   QDir::setCurrent(userFolder.path() + "/" + QString::number(chatId));
-
-  // qDebug() << "After set curr"  << QDir::currentPath();
-
-  // find in db first
   if (QFile::exists(delfilename)) {
     QFile::remove(delfilename);
     sendMessage(chatId, "Deleted!" );
@@ -324,19 +287,14 @@ void Note_bot::editNote(Update update, QString text)
          sendMessage(chatId, "Saved!");
          QDir::setCurrent(oldPath);
     }
-    //db works
-
-
 
 }
 
 void Note_bot::list(Update update)
 {
-
   qint64 chatId = update.getMessage().getChat().getId();
+
   QDir userFolder(QString("./data") + "/" + QString::number(chatId));
-
-
 
   QStringList notelist = userFolder.entryList(QStringList(), QDir::Files);
   QString reply;
@@ -349,7 +307,8 @@ void Note_bot::list(Update update)
 
 }
 
-Note_bot:: ~Note_bot(){
+Note_bot::~Note_bot()
+{
     db.close();
 
 }
